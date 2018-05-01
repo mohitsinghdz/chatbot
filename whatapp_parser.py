@@ -4,7 +4,7 @@ import re
 def getdata():
     responsedictionary = dict() #key value pairs for char responses.
     mytext,hertext,currentspeaker,lastspeaker="","","",""
-    openedfile = open("finalchat.txt",'r+')
+    openedfile = open("testchat.txt",'r+')
     allines = openedfile.readlines()            #total number of lines
     f= open("new.txt","w+")
     #for index, lines in enumerate(allines):
