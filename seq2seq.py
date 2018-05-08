@@ -11,15 +11,19 @@ import os
 def createTrainingMatrix(convoFile,wlist,maxLen):
     convoDictionary = np.load(convoFile).item()
     numExamples = len(convoDictionary)
+    print "num ex:", numExamples
     xTrain = np.zeros((numExamples,maxLen), dtype='int32')
     yTrain = np.zeros((numExamples,maxLen), dtype='int32')
+    print "XTRAIN  :",xTrain
+    
     for index,(key,value) in enumerate(convoDictionary.iteritems()):
         #need to store integerized representation of strings here
         #initialised as padding
-
+        #print "key "+ key + "value "+ value
+              
         encoderMessage = np.full((maxLen),wlist.index('<pad>'),dtype='int32')
         decoderMessage = np.full((maxLen),wlist.index('<pad>'),dtype="int32")
-        
+        #print encoderMessage
         #getting all the individual words in a single string as a list
         keySplit =  key.split()
         valueSplit = value.split()
@@ -28,46 +32,52 @@ def createTrainingMatrix(convoFile,wlist,maxLen):
 
         #throw sentences that are either too empty or long
 
-        if(keyCount > (maxLen - 1) or valueCount > (maxLen - 1) or valueCount == 0 or KeyCount == 0 ):
+        if(keyCount > (maxLen - 1) or valueCount > (maxLen - 1) or valueCount == 0 or keyCount == 0 ):
             continue
-
+        
         #integerizing the encoded string
         for keyIndex, word in enumerate(keySplit):
             try:
                     encoderMessage[keyIndex] = wlist.index(word)
             except ValueError:
                     encoderMessage[keyIndex] = 0
-        encoderMessage[keyIndex + 1] = wList.index('<EOS>')
-		# Integerize the decoder string
-		for valueIndex, word in enumerate(valueSplit):
+        encoderMessage[keyIndex + 1] = wlist.index('<EOS>')
+#decoded string	
+        for valueIndex, word in enumerate(valueSplit):
 			try:
-				decoderMessage[valueIndex] = wList.index(word)
+				decoderMessage[valueIndex] = wlist.index(word)
 			except ValueError:
 				decoderMessage[valueIndex] = 0
-		decoderMessage[valueIndex + 1] = wList.index('<EOS>')
-		xTrain[index] = encoderMessage
-		yTrain[index] = decoderMessage             
+        decoderMessage[valueIndex + 1] = wlist.index('<EOS>')         
+        xTrain[index] = encoderMessage
+        yTrain[index] =  decoderMessage
     # Remove rows with all zeros
-	yTrain = yTrain[~np.all(yTrain == 0, axis=1)]
-	xTrain = xTrain[~np.all(xTrain == 0, axis=1)]
-	numExamples = xTrain.shape[0]
-	return numExamples, xTrain, yTrain
+    
+    yTrain = yTrain[~np.all(yTrain == 0, axis=1)]
+    xTrain = xTrain[~np.all(xTrain == 0, axis=1)]
+    print "Xtrain 2 : ",xTrain
+    numExamples = xTrain.shape[0]
+    return numExamples, xTrain, yTrain
 
 #copied function, cant gaurantee will it work or not (haha amar bacha lena)
 def getTrainingBatch(localXTrain, localYTrain, localBatchSize, maxLen):
-	num = randint(0,numTrainingExamples - localBatchSize - 1)
-	arr = localXTrain[num:num + localBatchSize]
-	labels = localYTrain[num:num + localBatchSize]
+    print numTrainingExamples 
+    print localBatchSize
+    
+    num = randint(0,numTrainingExamples - localBatchSize - 1)
+    
+    arr = localXTrain[num:num + localBatchSize]
+    labels = localYTrain[num:num + localBatchSize]
 	# Reversing the order of encoder string apparently helps as per 2014 paper
-	reversedList = list(arr)
-	for index,example in enumerate(reversedList):
+    reversedList = list(arr)
+    for index,example in enumerate(reversedList):
 		reversedList[index] = list(reversed(example))
 
 	# Lagged labels are for the training input into the decoder
-	laggedLabels = []
-	EOStokenIndex = wordList.index('<EOS>')
-	padTokenIndex = wordList.index('<pad>')
-	for example in labels:
+    laggedLabels = []
+    EOStokenIndex = wordlist.index('<EOS>')
+    padTokenIndex = wordlist.index('<pad>')
+    for example in labels:
 		eosFound = np.argwhere(example==EOStokenIndex)[0]
 		shiftedExample = np.roll(example,1)
 		shiftedExample[0] = EOStokenIndex
@@ -77,10 +87,10 @@ def getTrainingBatch(localXTrain, localYTrain, localBatchSize, maxLen):
 		laggedLabels.append(shiftedExample)
 
 	# Need to transpose these 
-	reversedList = np.asarray(reversedList).T.tolist()
-	labels = labels.T.tolist()
-	laggedLabels = np.asarray(laggedLabels).T.tolist()
-	return reversedList, labels, laggedLabels
+    reversedList = np.asarray(reversedList).T.tolist()
+    labels = labels.T.tolist()
+    laggedLabels = np.asarray(laggedLabels).T.tolist()
+    return reversedList, labels, laggedLabels
 
 def translateToSentences(inputs, wList, encoder=False):
 	EOStokenIndex = wList.index('<EOS>')
@@ -133,8 +143,8 @@ def idsToSentence(ids, wList):
 
 #hyper parameteres
 batchSize = 24
-maxEncoderLenght = 15 
-maxDecoderLenght = 15
+maxEncoderLength = 15 
+maxDecoderLength = 15
 lstmUnits = 112
 embeddingDim = lstmUnits
 numLayersLSTM = 3
@@ -176,7 +186,8 @@ if (os.path.isfile('Seq2SeqXTrain.npy') and os.path.isfile('Seq2SeqYTrain.npy'))
     print 'finished loading training matrices'
     numTrainingExamples = xTrain.shape[0]
 else: #if the program is running for the first time
-    numTrainingExamples, xTrain, yTrain = createTrainingMatrix('chats.npy',wordlist,maxEncoderLenght)
+    numTrainingExamples, xTrain, yTrain = createTrainingMatrix('chats.npy',wordlist,maxEncoderLength)
+
     np.save('Seq2SeqXTrain.npy',xTrain)
     np.save('Seq2SeqYTrain.npy',yTrain)
     print 'Finished creating training matrices'
@@ -185,9 +196,9 @@ tf.reset_default_graph()
 
 #making placeholders
 
-encoderInputs = [tf.placeholder(tf.int32,shape=(None,)) for i in range(maxEncoderLenght)]
-decoderLabels = [tf.placeholder(tf.int32, shape=(None,)) for i in range(maxDecoderLenght)]
-decoderInputs = [tf.placeholder(tf.int32, shape=(None,)) for i in range (maxDecoderLenght)] 
+encoderInputs = [tf.placeholder(tf.int32,shape=(None,)) for i in range(maxEncoderLength)]
+decoderLabels = [tf.placeholder(tf.int32, shape=(None,)) for i in range(maxDecoderLength)]
+decoderInputs = [tf.placeholder(tf.int32, shape=(None,)) for i in range (maxDecoderLength)] 
 feedPrevious = tf.placeholder(tf.bool)
 
 encoderLSTM = tf.nn.rnn_cell.BasicLSTMCell(lstmUnits, state_is_tuple=True)
@@ -231,29 +242,29 @@ encoderTestStrings = ["Baby",
 zeroVector = np.zeros((1), dtype='int32')
 
 for i in range(numIterations):
+    encoderTrain, decoderTargetTrain, decoderInputTrain = getTrainingBatch(xTrain, yTrain, batchSize, maxEncoderLength)
+    print encoderTrain
+    feedDict = {encoderInputs[t]: encoderTrain[t] for t in range(maxEncoderLength)}
+    feedDict.update({decoderLabels[t]: decoderTargetTrain[t] for t in range(maxDecoderLength)})
+    feedDict.update({decoderInputs[t]: decoderInputTrain[t] for t in range(maxDecoderLength)})
+    feedDict.update({feedPrevious: False})
 
-	encoderTrain, decoderTargetTrain, decoderInputTrain = getTrainingBatch(xTrain, yTrain, batchSize, maxEncoderLength)
-	feedDict = {encoderInputs[t]: encoderTrain[t] for t in range(maxEncoderLength)}
-	feedDict.update({decoderLabels[t]: decoderTargetTrain[t] for t in range(maxDecoderLength)})
-	feedDict.update({decoderInputs[t]: decoderInputTrain[t] for t in range(maxDecoderLength)})
-	feedDict.update({feedPrevious: False})
-
-	curLoss, _, pred = sess.run([loss, optimizer, decoderPrediction], feed_dict=feedDict)
+    curLoss, _, pred = sess.run([loss, optimizer, decoderPrediction], feed_dict=feedDict)
 	
-	if (i % 50 == 0):
+    if (i % 50 == 0):
 		print('Current loss:', curLoss, 'at iteration', i)
 		summary = sess.run(merged, feed_dict=feedDict)
 		writer.add_summary(summary, i)
-	if (i % 25 == 0 and i != 0):
+    if (i % 25 == 0 and i != 0):
 		num = randint(0,len(encoderTestStrings) - 1)
 		print encoderTestStrings[num]
-		inputVector = getTestInput(encoderTestStrings[num], wordList, maxEncoderLength);
+		inputVector = getTestInput(encoderTestStrings[num], wordlist, maxEncoderLength)
 		feedDict = {encoderInputs[t]: inputVector[t] for t in range(maxEncoderLength)}
 		feedDict.update({decoderLabels[t]: zeroVector for t in range(maxDecoderLength)})
 		feedDict.update({decoderInputs[t]: zeroVector for t in range(maxDecoderLength)})
 		feedDict.update({feedPrevious: True})
 		ids = (sess.run(decoderPrediction, feed_dict=feedDict))
-		print idsToSentence(ids, wordList)
+		print idsToSentence(ids, wordlist)
 
-	if (i % 10000 == 0 and i != 0):
+    if (i % 10000 == 0 and i != 0):
 		savePath = saver.save(sess, "models/pretrained_seq2seq.ckpt", global_step=i)
