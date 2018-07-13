@@ -58,8 +58,7 @@ def createTrainingMatrix(convoFile,wlist,maxLen):
     print "Xtrain 2 : ",xTrain
     numExamples = xTrain.shape[0]
     return numExamples, xTrain, yTrain
-
-#copied function, cant gaurantee will it work or not (haha amar bacha lena)
+#cant gaurantee will it work or not 
 def getTrainingBatch(localXTrain, localYTrain, localBatchSize, maxLen):
     print numTrainingExamples 
     print localBatchSize
@@ -139,7 +138,7 @@ def idsToSentence(ids, wList):
         listOfResponses.append(myStr)
     listOfResponses = [i for i in listOfResponses if i]
     return listOfResponses
-#bas yaha tak hi hai, dekh lena    
+
 
 #hyper parameteres
 batchSize = 24
@@ -231,12 +230,12 @@ logdir = "tensorboard/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + "/
 writer = tf.summary.FileWriter(logdir,sess.graph)
 
 
-#test strings to do some backchodi
-encoderTestStrings = ["Baby",
+#test strings
+encoderTestStrings = ["hi there",
                         "hi",
                         "hello",
                         "Good morning",
-                        "i love you"
+                        "How r you"
                         
                         ]
 zeroVector = np.zeros((1), dtype='int32')
